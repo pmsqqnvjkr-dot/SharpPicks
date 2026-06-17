@@ -46,6 +46,18 @@ echo "==> Generating missing blog posts from DB..."
 python3 scripts/generate_missing_blog_posts.py --target landing/blog
 
 echo
+echo "==> Injecting live stats into landing/index.html..."
+# Crawlers + Lighthouse see the served HTML before any JS runs. The
+# shipped loadStats() handles browsers but cannot help bots, so we
+# pre-render the nine stat counters at deploy time. Backup the tracked
+# file first; restore after wrangler exits so the git-tracked file
+# stays clean regardless of whether the deploy succeeded.
+STATS_BACKUP="$(mktemp -t landing-index.XXXXXX)"
+trap 'cp "$STATS_BACKUP" "$ROOT/landing/index.html" 2>/dev/null; rm -f "$STATS_BACKUP"' EXIT
+cp "$ROOT/landing/index.html" "$STATS_BACKUP"
+python3 scripts/inject_landing_stats.py landing/index.html
+
+echo
 echo "==> Deploying to Cloudflare Pages..."
 # Clear CLOUDFLARE_API_TOKEN for the wrangler invocation only. If it's
 # set in the shell (e.g. via .zshrc) with IP allowlist restrictions,
@@ -53,6 +65,12 @@ echo "==> Deploying to Cloudflare Pages..."
 # tells wrangler to fall back to cached OAuth credentials in
 # ~/.wrangler/config/default.toml (set up via `npx wrangler login`).
 CLOUDFLARE_API_TOKEN= npx wrangler pages deploy landing --project-name sharppicks --commit-dirty=true --branch main
+
+echo
+echo "==> Restoring git-tracked landing/index.html..."
+cp "$STATS_BACKUP" "$ROOT/landing/index.html"
+rm -f "$STATS_BACKUP"
+trap - EXIT
 
 echo
 echo "==> Cleaning generated (untracked) blog posts..."
