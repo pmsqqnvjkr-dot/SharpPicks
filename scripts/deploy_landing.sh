@@ -46,16 +46,28 @@ echo "==> Generating missing blog posts from DB..."
 python3 scripts/generate_missing_blog_posts.py --target landing/blog
 
 echo
-echo "==> Injecting live stats into landing/index.html..."
+echo "==> Snapshotting tracked landing/index.html..."
 # Crawlers + Lighthouse see the served HTML before any JS runs. The
 # shipped loadStats() handles browsers but cannot help bots, so we
-# pre-render the nine stat counters at deploy time. Backup the tracked
-# file first; restore after wrangler exits so the git-tracked file
-# stays clean regardless of whether the deploy succeeded.
+# pre-render the nine stat counters AND the Sharp Journal ItemList
+# JSON-LD at deploy time. Backup the tracked file first; restore after
+# wrangler exits so the git-tracked file stays clean regardless of
+# whether the deploy succeeded.
 STATS_BACKUP="$(mktemp -t landing-index.XXXXXX)"
-trap 'cp "$STATS_BACKUP" "$ROOT/landing/index.html" 2>/dev/null; rm -f "$STATS_BACKUP"' EXIT
+trap 'cp "$STATS_BACKUP" "$ROOT/landing/index.html" 2>/dev/null; rm -f "$STATS_BACKUP"; rm -f "$ROOT/landing/sitemap.xml" 2>/dev/null' EXIT
 cp "$ROOT/landing/index.html" "$STATS_BACKUP"
+
+echo
+echo "==> Injecting live stats into landing/index.html..."
 python3 scripts/inject_landing_stats.py landing/index.html
+
+echo
+echo "==> Injecting Sharp Journal ItemList JSON-LD..."
+python3 scripts/inject_landing_jsonld.py landing/index.html
+
+echo
+echo "==> Generating landing/sitemap.xml..."
+python3 scripts/generate_landing_sitemap.py landing
 
 echo
 echo "==> Deploying to Cloudflare Pages..."
@@ -67,9 +79,10 @@ echo "==> Deploying to Cloudflare Pages..."
 CLOUDFLARE_API_TOKEN= npx wrangler pages deploy landing --project-name sharppicks --commit-dirty=true --branch main
 
 echo
-echo "==> Restoring git-tracked landing/index.html..."
+echo "==> Restoring git-tracked landing/index.html + removing generated sitemap..."
 cp "$STATS_BACKUP" "$ROOT/landing/index.html"
 rm -f "$STATS_BACKUP"
+rm -f "$ROOT/landing/sitemap.xml"
 trap - EXIT
 
 echo
