@@ -751,6 +751,7 @@ def serialize_user(user):
         'trial_end_date': user.trial_end_date.isoformat() if user.trial_end_date else None,
         'email_verified': user.email_verified,
         'is_new': is_new,
+        'nfl_launch_notify': bool(getattr(user, 'nfl_launch_notify', False)),
     }
 
 @app.before_request
@@ -10136,6 +10137,45 @@ def delete_fcm_token():
     FCMToken.query.filter_by(user_id=user.id, fcm_token=token).delete()
     db.session.commit()
     return jsonify({'success': True})
+
+
+@app.route('/api/account/nfl-launch-notify', methods=['POST'])
+@limiter.limit("10 per minute")
+def nfl_launch_notify_optin():
+    """One-way opt-in for the "we will tell you when NFL launches" push.
+    Called by the Notify Me card on the NFL Calibration screen. Idempotent:
+    a second tap re-confirms the same flag without duplicating the user_event
+    row beyond the parallel logging here. The actual notification is sent by
+    a one-shot script at the time nfl.launched flips to true in
+    launch_config.json.
+    """
+    user = get_current_user_obj()
+    if not user:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    was_already = bool(getattr(user, 'nfl_launch_notify', False))
+    user.nfl_launch_notify = True
+
+    try:
+        ev = UserEvent(
+            user_id=user.id,
+            event_type='nfl_launch_notify_optin',
+            event_data={'was_already': was_already},
+            surface='nfl_calibration',
+            sport='nfl',
+            session_id=session.get('session_token') or None,
+            is_internal=bool(getattr(user, 'is_internal', False)),
+            ip=(_events_client_ip() if '_events_client_ip' in globals() else None),
+            user_agent=(request.headers.get('User-Agent') or '')[:500],
+            created_at=datetime.utcnow(),
+        )
+        db.session.add(ev)
+    except Exception as e:
+        # Event logging failure must not block the opt-in itself.
+        logging.warning(f"nfl_launch_notify_optin event log failed: {e}")
+
+    db.session.commit()
+    return jsonify({'success': True, 'nfl_launch_notify': True})
 
 
 @app.route('/api/account/profile', methods=['PATCH'])

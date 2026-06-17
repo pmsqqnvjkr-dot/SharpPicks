@@ -82,6 +82,10 @@ class User(UserMixin, db.Model):
     trial_ends = db.Column(db.DateTime, nullable=True)
     trial_used = db.Column(db.Boolean, default=False)
     trial_warning_sent = db.Column(db.Boolean, default=False)
+    # NFL launch opt-in (2026-06-12 migration). One-way flag: True after
+    # user taps "Notify me" on the NFL Calibration screen. Read once at
+    # broadcast time when nfl.launched flips in launch_config.json.
+    nfl_launch_notify = db.Column(db.Boolean, nullable=False, default=False)
     session_token = db.Column(db.String, nullable=True, default=lambda: str(uuid.uuid4()))
     oauth_provider = db.Column(db.String(20), nullable=True)
     oauth_id = db.Column(db.String(255), nullable=True)

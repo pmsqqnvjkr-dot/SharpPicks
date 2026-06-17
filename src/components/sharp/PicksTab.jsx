@@ -28,6 +28,7 @@ import PassDay from '../signals/PassDay';
 import DarkDay from '../signals/DarkDay';
 import WNBAPreLaunchScreen from './WNBAPreLaunchScreen';
 import NBAOffSeasonScreen from './NBAOffSeasonScreen';
+import NFLCalibrationScreen from './NFLCalibrationScreen';
 import { useLaunchConfig } from '../../hooks/useLaunchConfig';
 import { resolveSportEmptyState } from '../../utils/sportState';
 import CalibrationBanner from '../brand/CalibrationBanner';
@@ -427,6 +428,13 @@ export default function PicksTab({ onNavigate }) {
   // handoff. Returns null for in-season sports so existing pageState
   // selector below handles them unchanged.
   const specialState = resolveSportEmptyState(sport, launchConfig);
+  if (specialState === 'calibration' && sport === 'nfl') {
+    return (
+      <div style={{ padding: '0' }}>
+        <NFLCalibrationScreen onNavigate={onNavigate} />
+      </div>
+    );
+  }
   if (specialState === 'offseason' && sport === 'nba') {
     return (
       <div style={{ padding: '0' }}>
