@@ -1555,7 +1555,13 @@ def build_market_report_dict(date_param, sport=None):
             clv_beats = sum(1 for p in clv_pool if (p.clv or 0) > 0.25)
             clv_misses = sum(1 for p in clv_pool if (p.clv or 0) < -0.25)
             clv_decisive = clv_beats + clv_misses
-            clv_beat_pct = round((clv_beats / clv_decisive) * 100, 1) if clv_decisive > 0 else 0.0
+            # NULL on undecided pool. A divide-by-zero fallback to 0.0 read as
+            # a damning "0% beat rate" downstream (e.g. WNBA today has 8 settled
+            # picks and 0 with graded CLV, so 0/0 was rendering as +0%). NULL
+            # forces the card / tweet path to surface "no data" honestly.
+            # Separate ops issue: the closing-lines cron is not populating
+            # picks.clv / picks.closing_spread for WNBA. Track that upstream.
+            clv_beat_pct = round((clv_beats / clv_decisive) * 100, 1) if clv_decisive > 0 else None
             signals_count = Pick.query.filter(Pick.sport == sport).count()
             season_block = {
                 'roi_pct': roi_pct,
