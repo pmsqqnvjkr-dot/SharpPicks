@@ -108,7 +108,10 @@ def enumerate_urls(landing_dir: str) -> list[dict]:
             **meta,
         })
 
-    # 3. Journal index (/blog/) + every post directory.
+    # 3. Sharp Journal index (/blog/) + every article directory + every
+    # category hub. The "category" directory is treated specially so its
+    # children land at /blog/category/<slug>/ rather than as ordinary
+    # /blog/<slug>/ article URLs.
     blog_dir = os.path.join(landing_dir, "blog")
     if os.path.isdir(blog_dir):
         blog_index = os.path.join(blog_dir, "index.html")
@@ -121,6 +124,20 @@ def enumerate_urls(landing_dir: str) -> list[dict]:
         for slug in sorted(os.listdir(blog_dir)):
             sub = os.path.join(blog_dir, slug)
             if not os.path.isdir(sub):
+                continue
+            if slug == "category":
+                # Category hub directory: /blog/category/<cat>/index.html
+                for cat_slug in sorted(os.listdir(sub)):
+                    cat_dir = os.path.join(sub, cat_slug)
+                    cat_idx = os.path.join(cat_dir, "index.html")
+                    if not os.path.isfile(cat_idx):
+                        continue
+                    urls.append({
+                        "loc": f"{BASE}/blog/category/{cat_slug}/",
+                        "lastmod": iso_lastmod(cat_idx),
+                        "priority": "0.8",
+                        "changefreq": "weekly",
+                    })
                 continue
             post = os.path.join(sub, "index.html")
             if not os.path.isfile(post):

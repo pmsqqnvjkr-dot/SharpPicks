@@ -42,8 +42,12 @@ TRACKED_SLUGS=$(git -C "$ROOT" ls-files landing/blog | awk -F/ '{print $3}' | so
 echo "Tracked static slugs in git: $(echo "$TRACKED_SLUGS" | wc -l | tr -d ' ')"
 
 echo
-echo "==> Generating missing blog posts from DB..."
+echo "==> Generating missing Sharp Journal articles from DB..."
 python3 scripts/generate_missing_blog_posts.py --target landing/blog
+
+echo
+echo "==> Generating Sharp Journal category hub pages..."
+python3 scripts/generate_landing_categories.py --landing landing
 
 echo
 echo "==> Snapshotting tracked landing/index.html..."
@@ -54,7 +58,7 @@ echo "==> Snapshotting tracked landing/index.html..."
 # wrangler exits so the git-tracked file stays clean regardless of
 # whether the deploy succeeded.
 STATS_BACKUP="$(mktemp -t landing-index.XXXXXX)"
-trap 'cp "$STATS_BACKUP" "$ROOT/landing/index.html" 2>/dev/null; rm -f "$STATS_BACKUP"; rm -f "$ROOT/landing/sitemap.xml" 2>/dev/null' EXIT
+trap 'cp "$STATS_BACKUP" "$ROOT/landing/index.html" 2>/dev/null; rm -f "$STATS_BACKUP"; rm -f "$ROOT/landing/sitemap.xml" 2>/dev/null; rm -rf "$ROOT/landing/blog/category" 2>/dev/null' EXIT
 cp "$ROOT/landing/index.html" "$STATS_BACKUP"
 
 echo
@@ -79,16 +83,17 @@ echo "==> Deploying to Cloudflare Pages..."
 CLOUDFLARE_API_TOKEN= npx wrangler pages deploy landing --project-name sharppicks --commit-dirty=true --branch main
 
 echo
-echo "==> Restoring git-tracked landing/index.html + removing generated sitemap..."
+echo "==> Restoring git-tracked landing/index.html + cleaning generated sitemap + categories..."
 cp "$STATS_BACKUP" "$ROOT/landing/index.html"
 rm -f "$STATS_BACKUP"
 rm -f "$ROOT/landing/sitemap.xml"
+rm -rf "$ROOT/landing/blog/category"
 trap - EXIT
 
 echo
-echo "==> Cleaning generated (untracked) blog posts..."
+echo "==> Cleaning generated (untracked) Sharp Journal articles..."
 # -f force, -d directories. ONLY removes untracked files; tracked
-# static posts and other tracked files are untouched.
+# static articles and other tracked files are untouched.
 git -C "$ROOT" clean -fd landing/blog
 
 echo
