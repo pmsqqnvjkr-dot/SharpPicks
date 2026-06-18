@@ -40,7 +40,7 @@ body{font-family:var(--sn);background:#0c1018 !important;color:#e8eaf0;-webkit-f
 
 /* ─── NAV ─── */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,16,24,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--bdr);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(16px,4vw,48px)}
-.css-wm{display:inline-flex;align-items:center;font-family:var(--mn);font-weight:500;letter-spacing:.2em;color:#fff;line-height:1;white-space:nowrap;user-select:none;text-decoration:none}
+.css-wm{display:inline-flex;align-items:center;font-family:var(--mn);font-weight:500;letter-spacing:.2em;color:#fff;line-height:1;white-space:nowrap;user-select:none;text-decoration:none;min-height:44px;padding:4px 0}
 .css-wm .wm-bars{display:inline-flex;flex-direction:column;align-items:center;flex-shrink:0}
 .css-wm .wm-bars-row{display:inline-flex}
 .css-wm .wm-bar{display:inline-block;background:currentColor}
@@ -97,8 +97,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,16,24,.92
 .strip-stat{text-align:center}
 .strip-n{font-family:var(--mn);font-size:32px;font-weight:500}
 .strip-n.g{color:var(--grn)}
-.strip-l{font-family:var(--mn);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-top:4px}
-.strip-tag{width:100%;text-align:center;font-family:var(--sf);font-style:italic;font-size:13px;color:var(--t4);margin-top:8px}
+.strip-l{font-family:var(--mn);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7a82a2;margin-top:4px}
+.strip-tag{width:100%;text-align:center;font-family:var(--sf);font-style:italic;font-size:13px;color:#7a82a2;margin-top:8px}
 
 /* ─── INSIDE THE APP (screenshot tabs) ─── */
 .app-sec{padding:56px 24px;max-width:960px;margin:0 auto}
@@ -207,7 +207,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,16,24,.92
 /* ─── FOOTER ─── */
 footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
 .f-wm{margin-bottom:6px}
-.f-tg{font-family:var(--sf);font-style:italic;font-size:13px;color:var(--t3);margin-bottom:16px}
+.f-tg{font-family:var(--sf);font-style:italic;font-size:13px;color:#7a82a2;margin-bottom:16px}
 .f-d{font-size:11px;color:var(--t4);max-width:480px;margin:0 auto 16px;line-height:1.6}
 .f-l{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
 .f-l a{font-family:var(--mn);font-size:11px;color:var(--t4);text-decoration:none;transition:color .2s}
@@ -283,6 +283,8 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
   </div>
 </nav>
 
+<main>
+
 <!-- ═══ HERO ═══ -->
 <section class="hero">
   <div class="hero-mark">
@@ -351,23 +353,23 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
   </div>
   <div class="app-panel active" id="tab-signal">
     <p class="desc">Full signal card: market vs model line, tier, size, edge bar, value range, flat and Kelly sizing, and a one-tap tracking button. Every detail of the thesis, visible.</p>
-    <img class="screenshot" src="/images/screenshot-signal-detail.png" alt="Signal detail screen" loading="lazy">
+    <img class="screenshot" src="/images/screenshot-signal-detail.png" alt="Signal detail screen" width="471" height="1024" loading="lazy">
   </div>
   <div class="app-panel" id="tab-market">
     <p class="desc">MEI score, regime classification, top edge, signal density bar, line movement tracking, and a market signal narrative -- before tip-off.</p>
-    <img class="screenshot" src="/images/screenshot-market.png" alt="Market intelligence screen" loading="lazy">
+    <img class="screenshot" src="/images/screenshot-market.png" alt="Market intelligence screen" width="471" height="1024" loading="lazy">
   </div>
   <div class="app-panel" id="tab-board">
     <p class="desc">Every game analyzed with edge sorting. Filter by upcoming, final, or passed. Spread, total, moneyline, and quant analysis on each matchup.</p>
-    <img class="screenshot" src="/images/screenshot-market-games.png" alt="Market board screen" loading="lazy">
+    <img class="screenshot" src="/images/screenshot-market-games.png" alt="Market board screen" width="471" height="1024" loading="lazy">
   </div>
   <div class="app-panel" id="tab-results">
     <p class="desc">Your tracked bets at actual stakes. Total P/L, equity curve, ROI, record, units, plus discipline score with selectivity rate vs industry average.</p>
-    <img class="screenshot" src="/images/screenshot-results.png" alt="Results tracker screen" loading="lazy">
+    <img class="screenshot" src="/images/screenshot-results.png" alt="Results tracker screen" width="471" height="1024" loading="lazy">
   </div>
   <div class="app-panel" id="tab-journal">
     <p class="desc">Signal intelligence notes, market analysis, and discipline essays. Content like "The Model Doesn't Watch the Game" -- designed to make you a sharper bettor.</p>
-    <img class="screenshot" src="/images/screenshot-signals.png" alt="Sharp Journal screen" loading="lazy">
+    <img class="screenshot" src="/images/screenshot-signals.png" alt="Sharp Journal screen" width="471" height="1024" loading="lazy">
   </div>
 </section>
 
@@ -567,6 +569,8 @@ footer{text-align:center;padding:48px 24px;border-top:1px solid var(--bdr)}
   </div>
   <div class="bot-motto">Beat the market, not the scoreboard.<br>One pick beats five.<br>No edge, no pick.</div>
 </section>
+
+</main>
 
 <footer>
   <div class="f-wm"><span class="css-wm" style="font-size:12px;opacity:.5"><span style="margin-right:4.2px">SHARP</span><span class="wm-bars" style="gap:1.8px"><span class="wm-bars-row" style="gap:1.44px"><span class="wm-bar" style="width:2px;height:15px;border-radius:1.2px"></span><span class="wm-bar" style="width:2px;height:15px;border-radius:1.2px"></span></span><span class="wm-ul" style="width:5.44px;height:1.5px"></span></span><span style="margin-left:5.4px">PICKS</span></span></div>
