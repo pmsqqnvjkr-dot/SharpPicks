@@ -26,6 +26,23 @@ def _get_sport():
     return request.args.get('sport', 'nba')
 
 
+def _sport_visible(sport):
+    """Wraps public_api.is_sport_publicly_visible so this module doesn't
+    need to import public_api at module top (would create a cycle). Returns
+    True for the historical default 'nba' even when the caller passed no
+    sport, since the legacy behavior is to fall back to NBA articles.
+    """
+    if not sport:
+        return True
+    try:
+        from public_api import is_sport_publicly_visible
+        return is_sport_publicly_visible(sport)
+    except Exception:
+        # Fail closed for unknown sports; preserve legacy behavior for the
+        # three known live ones.
+        return sport in ('nba', 'mlb', 'wnba')
+
+
 def insight_to_dict(insight):
     return {
         'id': insight.id,
@@ -57,6 +74,13 @@ def get_insights():
     limit = request.args.get('limit', 20, type=int)
     offset = request.args.get('offset', 0, type=int)
     rotate = request.args.get('rotate', '') == '1'
+
+    # Sport gate: NFL (or any future pre-launch sport) stays invisible
+    # until launch_config flips. Returns empty so the client UI handles
+    # it like an empty journal feed; same shape as the no-rows case
+    # without the gate, no information leak about hidden rows.
+    if not _sport_visible(sport):
+        return jsonify({'insights': [], 'total': 0, 'has_more': False})
 
     query = Insight.query.filter(_visible_filter())
     query = query.filter(db.or_(Insight.sport == sport, Insight.sport.is_(None)))
@@ -100,6 +124,8 @@ def get_insights():
 def get_latest():
     pass_day_param = request.args.get('pass_day')
     sport = _get_sport()
+    if not _sport_visible(sport):
+        return jsonify({'error': 'No insights found'}), 404
 
     sport_filter = db.or_(Insight.sport == sport, Insight.sport.is_(None))
 
@@ -120,6 +146,15 @@ def get_latest():
     return jsonify(insight_to_dict(insight))
 
 
+def _gate_single(insight):
+    """Hide individual rows whose sport is currently pre-launch."""
+    if not insight:
+        return None
+    if insight.sport and not _sport_visible(insight.sport):
+        return None
+    return insight
+
+
 @insights_bp.route('/<insight_id>', methods=['GET'])
 def get_insight(insight_id):
     insight = Insight.query.filter(
@@ -129,6 +164,7 @@ def get_insight(insight_id):
         insight = Insight.query.filter(
             _visible_filter(), Insight.slug == insight_id
         ).first()
+    insight = _gate_single(insight)
     if not insight:
         return jsonify({'error': 'Insight not found'}), 404
     return jsonify(insight_to_dict(insight))
@@ -139,6 +175,7 @@ def get_insight_by_slug(slug):
     insight = Insight.query.filter(
         _visible_filter(), Insight.slug == slug
     ).first()
+    insight = _gate_single(insight)
     if not insight:
         return jsonify({'error': 'Insight not found'}), 404
     return jsonify(insight_to_dict(insight))
