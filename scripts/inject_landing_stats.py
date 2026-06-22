@@ -28,12 +28,24 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import re
 import sys
 import urllib.request
 
 DEFAULT_STATS_URL = "https://app.sharppicks.ai/api/public/stats"
+
+# Date placeholders the redesigned landing uses for the "today" surfaces.
+# __TODAY_ISO__       -> 2026-06-22 (URL slug)
+# __TODAY_DAY_MONTH__ -> SUN · JUN 22 (display label)
+# Replace at deploy time so crawlers see today's URLs / today's date.
+# Crawlers re-discover when we redeploy (daily through the content cron
+# or manually); a user who clicks tomorrow gets yesterday's report,
+# which is still a valid archive page.
+_WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+_MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+           "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 
 # Each entry maps an id attribute on the landing page to a function that
 # turns the /api/public/stats response into the display string. Returning
@@ -159,12 +171,25 @@ def main() -> int:
 
     new_html, filled, skipped = inject(html, stats)
 
+    # Date placeholders for the redesigned landing's "today" surfaces.
+    today = datetime.date.today()
+    iso = today.isoformat()
+    day_month = f"{_WEEKDAYS[today.weekday()]} · {_MONTHS[today.month - 1]} {today.day}"
+    iso_n = new_html.count("__TODAY_ISO__")
+    dm_n = new_html.count("__TODAY_DAY_MONTH__")
+    if iso_n:
+        new_html = new_html.replace("__TODAY_ISO__", iso)
+    if dm_n:
+        new_html = new_html.replace("__TODAY_DAY_MONTH__", day_month)
+
     with open(args.path, "w") as f:
         f.write(new_html)
 
     print(f"inject_landing_stats: filled {len(filled)} ({', '.join(filled)})")
     if skipped:
         print(f"inject_landing_stats: skipped {len(skipped)} ({', '.join(skipped)}) — no data")
+    if iso_n or dm_n:
+        print(f"inject_landing_stats: dated {iso_n} ISO + {dm_n} day-month placeholders -> {iso} / {day_month}")
     return 0
 
 
