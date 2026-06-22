@@ -185,7 +185,9 @@ h2{font-family:var(--serif);font-weight:600;font-size:clamp(28px,4vw,36px);lette
 .app-panel{display:none;text-align:center;}
 .app-panel.active{display:block;}
 .app-panel .desc{font-size:14px;line-height:1.7;color:var(--text-2);max-width:520px;margin:0 auto 24px;}
-.app-panel .screenshot{max-width:280px;width:100%;height:auto;aspect-ratio:680/1477;border-radius:32px;border:6px solid #1a1f2c;outline:1px solid var(--hairline);box-shadow:0 24px 56px rgba(0,0,0,0.45);margin:0 auto;display:block;}
+.phone-mock{max-width:220px;width:100%;margin:0 auto;padding:11px 9px;background:#0c1018;border:1.5px solid #2a3146;border-radius:34px;box-shadow:0 24px 56px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.06);position:relative;}
+.phone-mock::before{content:'';position:absolute;top:14px;left:50%;transform:translateX(-50%);width:64px;height:14px;background:#000;border-radius:99px;z-index:2;}
+.phone-mock .screenshot{display:block;width:100%;height:auto;aspect-ratio:680/1477;border-radius:24px;border:none;}
 
 /* ───── features grid (retained, six layers) ───── */
 .sec-inner{max-width:960px;margin:0 auto;padding:0 24px;}
@@ -320,7 +322,7 @@ footer{padding:56px 0 40px;}
     <a href="/" class="wordmark" aria-label="SharpPicks home">SHARP<span class="bars" aria-hidden="true"><i></i><i></i></span>PICKS</a>
     <nav class="nav-links" aria-label="Primary">
       <a href="/edges/mlb-today">Today's Edges</a>
-      <a href="/market-report/__TODAY_ISO__?sport=mlb">Market Reports</a>
+      <a href="/market-report/2026-06-22?sport=mlb">Market Reports</a>
       <a href="/blog/">Sharp Journal</a>
       <a href="/tools/clv-calculator">Tools</a>
       <a href="#pricing">Pricing</a>
@@ -370,14 +372,14 @@ footer{padding:56px 0 40px;}
           <div class="desk-link steel">Off-season &middot; Opening Oct 2026</div>
         </div>
       </a>
-      <a class="desk-cell" href="/market-report/__TODAY_ISO__?sport=mlb">
+      <a class="desk-cell" href="/market-report/2026-06-22?sport=mlb">
         <span class="desk-dot" aria-hidden="true"></span>
         <div>
           <div class="desk-sport">MLB</div>
           <div class="desk-link">Today's market report <b>&rsaquo;</b></div>
         </div>
       </a>
-      <a class="desk-cell" href="/market-report/__TODAY_ISO__?sport=wnba">
+      <a class="desk-cell" href="/market-report/2026-06-22?sport=wnba">
         <span class="desk-dot" aria-hidden="true"></span>
         <div>
           <div class="desk-sport">WNBA</div>
@@ -409,7 +411,7 @@ footer{padding:56px 0 40px;}
       <article class="sport-card sport-card-offseason">
         <div class="sport-card-head">
           <span class="sport-name">NBA <span class="sport-state-pill steel">OFF-SEASON</span></span>
-          <span class="sport-date">__TODAY_DAY_MONTH__</span>
+          <span class="sport-date">MON · JUN 22</span>
         </div>
         <div class="offseason-body">
           <p class="offseason-msg">
@@ -429,12 +431,12 @@ footer{padding:56px 0 40px;}
       <article class="sport-card">
         <div class="sport-card-head">
           <span class="sport-name">MLB</span>
-          <span class="sport-date">__TODAY_DAY_MONTH__</span>
+          <span class="sport-date">MON · JUN 22</span>
         </div>
         <div class="sport-links">
-          <a class="sport-link" href="/market-report/__TODAY_ISO__?sport=mlb"><span><span class="k">REPORT</span>Today's market report</span><span class="arr">&rsaquo;</span></a>
+          <a class="sport-link" href="/market-report/2026-06-22?sport=mlb"><span><span class="k">REPORT</span>Today's market report</span><span class="arr">&rsaquo;</span></a>
           <a class="sport-link" href="/edges/mlb-today"><span><span class="k">EDGES</span>Today's edge rankings</span><span class="arr">&rsaquo;</span></a>
-          <a class="sport-link" href="/passes/__TODAY_ISO__?sport=mlb"><span><span class="k">PASSES</span>What the model passed on</span><span class="arr">&rsaquo;</span></a>
+          <a class="sport-link" href="/passes/2026-06-22?sport=mlb"><span><span class="k">PASSES</span>What the model passed on</span><span class="arr">&rsaquo;</span></a>
           <a class="sport-link" href="/mlb-weekly-report"><span><span class="k">WEEKLY</span>This week in the MLB market</span><span class="arr">&rsaquo;</span></a>
         </div>
       </article>
@@ -442,11 +444,11 @@ footer{padding:56px 0 40px;}
       <article class="sport-card">
         <div class="sport-card-head">
           <span class="sport-name">WNBA</span>
-          <span class="sport-date">__TODAY_DAY_MONTH__</span>
+          <span class="sport-date">MON · JUN 22</span>
         </div>
         <div class="sport-links">
-          <a class="sport-link" href="/market-report/__TODAY_ISO__?sport=wnba"><span><span class="k">REPORT</span>Today's market report</span><span class="arr">&rsaquo;</span></a>
-          <a class="sport-link" href="/passes/__TODAY_ISO__?sport=wnba"><span><span class="k">PASSES</span>What the model passed on</span><span class="arr">&rsaquo;</span></a>
+          <a class="sport-link" href="/market-report/2026-06-22?sport=wnba"><span><span class="k">REPORT</span>Today's market report</span><span class="arr">&rsaquo;</span></a>
+          <a class="sport-link" href="/passes/2026-06-22?sport=wnba"><span><span class="k">PASSES</span>What the model passed on</span><span class="arr">&rsaquo;</span></a>
           <a class="sport-link" href="/wnba-weekly-report"><span><span class="k">WEEKLY</span>This week in the WNBA market</span><span class="arr">&rsaquo;</span></a>
         </div>
       </article>
@@ -470,9 +472,9 @@ footer{padding:56px 0 40px;}
 <!-- ───────── DISCIPLINE STRIP (retained, stat injection) ───────── -->
 <div class="strip">
   <div class="strip-in">
-    <div class="strip-stat"><div class="strip-n" id="s-analyzed">—</div><div class="strip-l">Games Analyzed</div></div>
-    <div class="strip-stat"><div class="strip-n g" id="s-signals">—</div><div class="strip-l">Signals Generated</div></div>
-    <div class="strip-stat"><div class="strip-n" id="s-passed">—</div><div class="strip-l">Games Passed</div></div>
+    <div class="strip-stat"><div class="strip-n" id="s-analyzed">347</div><div class="strip-l">Games Analyzed</div></div>
+    <div class="strip-stat"><div class="strip-n g" id="s-signals">163</div><div class="strip-l">Signals Generated</div></div>
+    <div class="strip-stat"><div class="strip-n" id="s-passed">184</div><div class="strip-l">Games Passed</div></div>
     <div class="strip-tag">If it's not sharp, it's not sent.</div>
   </div>
 </div>
@@ -491,23 +493,23 @@ footer{padding:56px 0 40px;}
   </div>
   <div class="app-panel active" id="tab-signal">
     <p class="desc">Full signal card: market vs model line, tier, size, edge bar, value range, flat and Kelly sizing, and a one-tap tracking button. Every detail of the thesis, visible.</p>
-    <img class="screenshot" src="/images/screenshot-signal-detail.png" alt="Signal detail screen" width="680" height="1477" loading="lazy">
+    <div class="phone-mock"><img class="screenshot" src="/images/screenshot-signal-detail.png" alt="Signal detail screen" width="680" height="1477" loading="lazy"></div>
   </div>
   <div class="app-panel" id="tab-market">
     <p class="desc">MEI score, regime classification, top edge, signal density bar, line movement tracking, and a market signal narrative before tip-off.</p>
-    <img class="screenshot" src="/images/screenshot-market.png" alt="Market intelligence screen" width="680" height="1477" loading="lazy">
+    <div class="phone-mock"><img class="screenshot" src="/images/screenshot-market.png" alt="Market intelligence screen" width="680" height="1477" loading="lazy"></div>
   </div>
   <div class="app-panel" id="tab-board">
     <p class="desc">Every game analyzed with edge sorting. Filter by upcoming, final, or passed. Spread, total, moneyline, and quant analysis on each matchup.</p>
-    <img class="screenshot" src="/images/screenshot-market-games.png" alt="Market board screen" width="680" height="1477" loading="lazy">
+    <div class="phone-mock"><img class="screenshot" src="/images/screenshot-market-games.png" alt="Market board screen" width="680" height="1477" loading="lazy"></div>
   </div>
   <div class="app-panel" id="tab-results">
     <p class="desc">Your tracked bets at actual stakes. Total P/L, equity curve, ROI, record, units, plus discipline score with selectivity rate vs industry average.</p>
-    <img class="screenshot" src="/images/screenshot-results.png" alt="Results tracker screen" width="680" height="1477" loading="lazy">
+    <div class="phone-mock"><img class="screenshot" src="/images/screenshot-results.png" alt="Results tracker screen" width="680" height="1477" loading="lazy"></div>
   </div>
   <div class="app-panel" id="tab-journal">
     <p class="desc">Signal intelligence notes, market analysis, and discipline essays. Content like "The Model Doesn't Watch the Game" designed to make you a sharper bettor.</p>
-    <img class="screenshot" src="/images/screenshot-signals.png" alt="Sharp Journal screen" width="680" height="1477" loading="lazy">
+    <div class="phone-mock"><img class="screenshot" src="/images/screenshot-signals.png" alt="Sharp Journal screen" width="680" height="1477" loading="lazy"></div>
   </div>
 </section>
 
@@ -577,16 +579,16 @@ footer{padding:56px 0 40px;}
     <h2>Verified. Public. No exceptions.</h2>
     <p class="sec-sub">Watch picks play out live. Every result graded against the closing line.</p>
     <div class="perf">
-      <div class="pi"><div class="v" id="perf-picks">—</div><div class="l">Total Picks</div><div class="sub-l">All time</div></div>
-      <div class="pi"><div class="v g" id="perf-sel">—</div><div class="l">Selectivity</div><div class="sub-l">Signal rate</div></div>
-      <div class="pi"><div class="v" id="perf-pass">—</div><div class="l">Total Passes</div><div class="sub-l">Games skipped</div></div>
+      <div class="pi"><div class="v" id="perf-picks">163</div><div class="l">Total Picks</div><div class="sub-l">All time</div></div>
+      <div class="pi"><div class="v g" id="perf-sel">47.0%</div><div class="l">Selectivity</div><div class="sub-l">Signal rate</div></div>
+      <div class="pi"><div class="v" id="perf-pass">184</div><div class="l">Total Passes</div><div class="sub-l">Games skipped</div></div>
       <div class="pi hl"><div class="v">0</div><div class="l">Picks Deleted</div><div class="sub-l">Full transparency</div></div>
     </div>
     <!-- The hero proof bar IDs live here too so the stats injector populates them on the same page. Visually hidden under the same surface; data feeds the homepage hero / hero copy. -->
     <div style="display:none" aria-hidden="true">
-      <span id="p-rec">—</span>
-      <span id="p-roi">—</span>
-      <span id="p-units">—</span>
+      <span id="p-rec">50-38</span>
+      <span id="p-roi">+18.0%</span>
+      <span id="p-units">+15.81u</span>
       <span id="p-spots">45</span>
     </div>
   </div>
@@ -768,8 +770,8 @@ footer{padding:56px 0 40px;}
       <nav class="foot-col" aria-label="Daily">
         <h4>DAILY</h4>
         <a href="/edges/mlb-today">MLB Edges Today</a>
-        <a href="/market-report/__TODAY_ISO__?sport=mlb">MLB Market Report</a>
-        <a href="/market-report/__TODAY_ISO__?sport=wnba">WNBA Market Report</a>
+        <a href="/market-report/2026-06-22?sport=mlb">MLB Market Report</a>
+        <a href="/market-report/2026-06-22?sport=wnba">WNBA Market Report</a>
         <a href="/mlb-weekly-report">MLB Weekly Summary</a>
         <a href="/wnba-weekly-report">WNBA Weekly Summary</a>
         <a href="/blog/what-the-nba-season-taught-the-model/">NBA 2025-26 Season Review</a>
@@ -906,7 +908,56 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
   "@type": "ItemList",
   "name": "Sharp Journal recent articles",
   "url": "https://sharppicks.ai/blog/",
-  "itemListElement": []
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "url": "https://sharppicks.ai/blog/mlb-discipline-pass/",
+      "name": "15 Games a Day and the Discipline to Pass on 14"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "url": "https://sharppicks.ai/blog/why-the-model-respects-the-market/",
+      "name": "Why the Model Respects the Market"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "url": "https://sharppicks.ai/blog/losing-streaks-are-part-of-the-math/",
+      "name": "Losing Streaks Are Part of the Math"
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "url": "https://sharppicks.ai/blog/clv-is-the-only-scoreboard-that-matters-early/",
+      "name": "CLV Is the Only Scoreboard That Matters Early"
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "url": "https://sharppicks.ai/blog/why-we-pass-more-than-we-play/",
+      "name": "Why We Pass More Than We Play"
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "url": "https://sharppicks.ai/blog/the-cost-of-a-bad-bet/",
+      "name": "The Cost of a Bad Bet You Didn't Need to Make"
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "url": "https://sharppicks.ai/blog/what-happens-between-the-lines-and-your-phone/",
+      "name": "What Happens Between the Lines and Your Phone"
+    },
+    {
+      "@type": "ListItem",
+      "position": 8,
+      "url": "https://sharppicks.ai/blog/beginners-guide/",
+      "name": "A Beginner's Guide to SharpPicks"
+    }
+  ]
 }
 </script>
 <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "f8cfdbdd30364ac19e8ded4ed2451efd"}'></script><!-- End Cloudflare Web Analytics -->
