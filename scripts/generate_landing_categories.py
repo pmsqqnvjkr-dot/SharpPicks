@@ -275,12 +275,19 @@ def fetch_articles_by_category(db_url: str, db_key: str) -> list[dict]:
     conn = psycopg2.connect(db_url)
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # Match the runtime visibility rule from insights_api._visible_filter:
+            # published OR (scheduled AND publish_date <= now). Otherwise an
+            # article that the API will serve today (scheduled for today)
+            # would be missing from the category hub.
             cur.execute(
                 """
                 SELECT slug, title, content, excerpt, reading_time_minutes,
                        category, publish_date AS published_at, created_at
                   FROM insights
-                 WHERE status = 'published'
+                 WHERE (
+                       status = 'published'
+                    OR (status = 'scheduled' AND publish_date <= NOW())
+                 )
                    AND category = %s
                    AND slug IS NOT NULL AND slug <> ''
                  ORDER BY COALESCE(publish_date, created_at) DESC

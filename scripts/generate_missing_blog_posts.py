@@ -225,7 +225,19 @@ def main():
     written = []
     skipped = []
     with app.app_context():
-        rows = Insight.query.filter(Insight.status == 'published').all()
+        # Match the runtime visibility rule from insights_api._visible_filter:
+        # published OR (scheduled AND publish_date <= now). Without the
+        # scheduled branch, scheduled-for-today articles would be served
+        # by the API but absent from the static landing/blog/<slug>/ tree.
+        from datetime import datetime as _dt
+        now_naive = _dt.utcnow()
+        from sqlalchemy import or_, and_
+        rows = Insight.query.filter(
+            or_(
+                Insight.status == 'published',
+                and_(Insight.status == 'scheduled', Insight.publish_date <= now_naive),
+            )
+        ).all()
         for ins in rows:
             slug = ins.slug
             # Skip daily market-note dailies. They live in the SPA, not
