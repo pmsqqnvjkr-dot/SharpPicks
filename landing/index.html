@@ -152,6 +152,14 @@ h2{font-family:var(--serif);font-weight:600;font-size:clamp(28px,4vw,36px);lette
 .sport-link:hover{background:rgba(139,147,163,0.05);color:var(--text);}
 .sport-link .k{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;color:var(--faint);margin-right:10px;display:inline-block;width:54px;}
 .sport-link .arr{color:var(--faint);font-family:var(--mono);}
+.sport-state-pill{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:0.16em;font-weight:600;padding:3px 7px;border-radius:4px;margin-left:8px;vertical-align:1px;}
+.sport-state-pill.steel{color:var(--steel);background:var(--steel-dim);border:1px solid var(--steel-border);}
+.sport-state-pill.amber{color:var(--amber);background:var(--amber-dim);border:1px solid var(--amber-border);}
+.sport-card-offseason .sport-card-head{background:var(--steel-dim);border-bottom-color:var(--steel-border);}
+.offseason-body{display:flex;flex-direction:column;}
+.offseason-msg{font-size:13px;line-height:1.6;color:var(--muted);padding:18px 20px 12px;}
+.offseason-meta{padding:0 20px 14px;border-bottom:1px solid var(--hairline);}
+.offseason-cd{font-family:var(--mono);font-size:10.5px;letter-spacing:0.12em;color:var(--steel);font-weight:600;}
 .nfl-banner{margin-top:18px;background:var(--card);border:1px solid var(--amber-border);border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;}
 .nfl-pill{font-family:var(--mono);font-size:10px;letter-spacing:0.16em;font-weight:600;color:var(--amber);background:var(--amber-dim);border:1px solid var(--amber-border);padding:6px 12px;border-radius:999px;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;}
 .nfl-pill::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--amber);}
@@ -311,8 +319,8 @@ footer{padding:56px 0 40px;}
   <div class="wrap nav">
     <a href="/" class="wordmark" aria-label="SharpPicks home">SHARP<span class="bars" aria-hidden="true"><i></i><i></i></span>PICKS</a>
     <nav class="nav-links" aria-label="Primary">
-      <a href="/edges/nba-today">Today's Edges</a>
-      <a href="/market-report/__TODAY_ISO__?sport=nba">Market Reports</a>
+      <a href="/edges/mlb-today">Today's Edges</a>
+      <a href="/market-report/__TODAY_ISO__?sport=mlb">Market Reports</a>
       <a href="/blog/">Sharp Journal</a>
       <a href="/tools/clv-calculator">Tools</a>
       <a href="#pricing">Pricing</a>
@@ -398,16 +406,23 @@ footer{padding:56px 0 40px;}
     </p>
     <div class="desk-grid">
 
-      <article class="sport-card">
+      <article class="sport-card sport-card-offseason">
         <div class="sport-card-head">
-          <span class="sport-name">NBA</span>
+          <span class="sport-name">NBA <span class="sport-state-pill steel">OFF-SEASON</span></span>
           <span class="sport-date">__TODAY_DAY_MONTH__</span>
         </div>
-        <div class="sport-links">
-          <a class="sport-link" href="/market-report/__TODAY_ISO__?sport=nba"><span><span class="k">REPORT</span>Today's market report</span><span class="arr">&rsaquo;</span></a>
-          <a class="sport-link" href="/edges/nba-today"><span><span class="k">EDGES</span>Today's edge rankings</span><span class="arr">&rsaquo;</span></a>
-          <a class="sport-link" href="/passes/__TODAY_ISO__?sport=nba"><span><span class="k">PASSES</span>What the model passed on</span><span class="arr">&rsaquo;</span></a>
-          <a class="sport-link" href="/nba-weekly-report"><span><span class="k">WEEKLY</span>This week in the NBA market</span><span class="arr">&rsaquo;</span></a>
+        <div class="offseason-body">
+          <p class="offseason-msg">
+            The 2025-26 NBA season is settled. Every signal graded, nothing removed.
+            The model is in the lab until opening night.
+          </p>
+          <div class="offseason-meta">
+            <span class="offseason-cd">Opening Tue Oct 20, 2026</span>
+          </div>
+          <div class="sport-links">
+            <a class="sport-link" href="/blog/what-the-nba-season-taught-the-model/"><span><span class="k">REVIEW</span>What 88 signals taught the model</span><span class="arr">&rsaquo;</span></a>
+            <a class="sport-link" href="/nba-weekly-report"><span><span class="k">LEDGER</span>2025-26 season ledger</span><span class="arr">&rsaquo;</span></a>
+          </div>
         </div>
       </article>
 
@@ -752,13 +767,12 @@ footer{padding:56px 0 40px;}
       </div>
       <nav class="foot-col" aria-label="Daily">
         <h4>DAILY</h4>
-        <a href="/edges/nba-today">NBA Edges Today</a>
         <a href="/edges/mlb-today">MLB Edges Today</a>
-        <a href="/market-report/__TODAY_ISO__?sport=nba">NBA Market Report</a>
         <a href="/market-report/__TODAY_ISO__?sport=mlb">MLB Market Report</a>
         <a href="/market-report/__TODAY_ISO__?sport=wnba">WNBA Market Report</a>
-        <a href="/nba-weekly-report">NBA Weekly Summary</a>
         <a href="/mlb-weekly-report">MLB Weekly Summary</a>
+        <a href="/wnba-weekly-report">WNBA Weekly Summary</a>
+        <a href="/blog/what-the-nba-season-taught-the-model/">NBA 2025-26 Season Review</a>
       </nav>
       <nav class="foot-col" aria-label="Sharp Journal">
         <h4>SHARP JOURNAL</h4>
