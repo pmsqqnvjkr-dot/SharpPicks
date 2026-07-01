@@ -8,7 +8,9 @@ import os
 import statistics
 from datetime import datetime, timedelta, timezone
 
-RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY')
+# Read the direct-Rundown key first, fall back to the legacy RAPIDAPI_KEY
+# name so a Railway var swap can lag the code deploy without breaking prod.
+RAPIDAPI_KEY = os.environ.get('RUNDOWN_API_KEY') or os.environ.get('RAPIDAPI_KEY')
 
 
 def _get_et_date_str():
@@ -25,9 +27,12 @@ def _get_rundown_session():
     global _rundown_session
     if _rundown_session is None:
         _rundown_session = requests.Session()
+        # Direct-Rundown auth. The prior RapidAPI-fronted variant used the
+        # x-rapidapi-key/host header pair; the direct API uses a single
+        # X-TheRundown-Key header against therundown.io/api/v2 with the
+        # same event/odds path shape underneath.
         _rundown_session.headers.update({
-            "x-rapidapi-key": RAPIDAPI_KEY or "",
-            "x-rapidapi-host": "therundown-therundown-v1.p.rapidapi.com"
+            "X-TheRundown-Key": RAPIDAPI_KEY or "",
         })
     return _rundown_session
 
@@ -100,7 +105,7 @@ def get_nba_events():
     
     try:
         response = _get_rundown_session().get(
-            f"https://therundown-therundown-v1.p.rapidapi.com/sports/{SPORT_ID}/events/{today}",
+            f"https://therundown.io/api/v2/sports/{SPORT_ID}/events/{today}",
             timeout=15
         )
         
@@ -122,7 +127,7 @@ def get_nba_odds():
     
     try:
         response = _get_rundown_session().get(
-            f"https://therundown-therundown-v1.p.rapidapi.com/sports/{SPORT_ID}/odds",
+            f"https://therundown.io/api/v2/sports/{SPORT_ID}/odds",
             params={
                 "include": "scores",
                 "affiliate_ids": "1,2,3,4,6"  # DraftKings, FanDuel, BetMGM, Caesars, etc.
@@ -342,7 +347,7 @@ def get_mlb_events(date_str=None):
 
     try:
         response = _get_rundown_session().get(
-            f"https://therundown-therundown-v1.p.rapidapi.com/sports/{MLB_SPORT_ID}/events/{date_str}",
+            f"https://therundown.io/api/v2/sports/{MLB_SPORT_ID}/events/{date_str}",
             timeout=15
         )
         if response.status_code == 200:
@@ -474,7 +479,7 @@ def test_connection():
 
     try:
         response = _get_rundown_session().get(
-            f"https://therundown-therundown-v1.p.rapidapi.com/sports/{SPORT_ID}/events/{today}",
+            f"https://therundown.io/api/v2/sports/{SPORT_ID}/events/{today}",
             timeout=15
         )
 
